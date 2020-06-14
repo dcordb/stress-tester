@@ -22,7 +22,7 @@ def gen():
 def evaluate(input, output):
     pass
 
-def main(exec_path, time):
+def main(exec_path, timeout):
     #executable name and timeout (in seconds)
 
     tc = 1
@@ -32,20 +32,29 @@ def main(exec_path, time):
 
         gen_input = gen()
 
-        if args.v:
-            print(gen_input, end='')
-
         try:
-            p = subprocess.run([exec_path], capture_output = True, timeout = time,
+            p = subprocess.run([exec_path], capture_output = True, timeout = timeout,
                                 text = True, input = gen_input, check = True)
 
         except subprocess.CalledProcessError as p_errors:
-            print(p_errors.stderr)
+            print(f'Process exited with code {p_errors.returncode}')
+            print(f'Following errors were found:\n\n{p_errors.stderr}')
+
+            with open('input', 'w') as f:
+                print(gen_input, file=f)
+
             break
 
         except subprocess.TimeoutExpired:
-            print(f'Executable exceeded timeout of {time} seconds')
+            print(f'Executable exceeded timeout of {timeout} seconds')
             break
+
+        if args.v:
+            print('Input:')
+            print(gen_input, end='')
+
+            print('Output:')
+            print(p.stdout)
 
         evaluate(gen_input, p.stdout)
 
