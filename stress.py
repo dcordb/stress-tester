@@ -1,65 +1,80 @@
 from random import randint, shuffle
 import subprocess
 import argparse
+from time import sleep
 
 parser = argparse.ArgumentParser(description = 'Stress Tester')
 parser.add_argument('-v', action = 'store_true', help = 'Verbose Mode')
-parser.add_argument('exec', help = 'Path to executable file', type = str)
+parser.add_argument('model', help = 'Path to model solution', type = str)
+parser.add_argument('brute', help = 'Path to brute solution', type = str)
 parser.add_argument('-t', help = 'Timeout to execute in seconds', default = 1, type = int)
+parser.add_argument('-i', help = 'Show input', action = 'store_true', dest = 'show_input')
+parser.add_argument('-o', help = 'Show output', action = 'store_true', dest = 'show_output')
 args = parser.parse_args()
 
 def gen():
-    n = randint(1, 5)
-    a = [ randint(1, 10) for _ in range(n) ]
+    M = 20
 
-    s = (
-        f'{n}\n' + 
-        " ".join(map(str, a)) + '\n'
-    )
+    for i in range(1, M):
+        for x in range(0, 2 ** i):
+            yield f'{bin(x)[2:].zfill(i)}\n'
 
-    return s
+def evaluate(model, brute, input=''):
+    x = int(model)
+    y = int(brute)
 
-def evaluate(input, output):
-    pass
+    assert(x == y)
 
-def main(exec_path, timeout):
-    #executable name and timeout (in seconds)
-
+def main(model, brute, timeout):
     tc = 1
+
+    gen_obj = gen()
 
     while True:
         print(f'Case {tc}:')
 
-        gen_input = gen()
+        gen_input = next(gen_obj)
 
-        try:
-            p = subprocess.run([exec_path], capture_output = True, timeout = timeout,
-                                text = True, input = gen_input, check = True)
+        def run_solution(path):
+            if args.show_input:
+                print('Input:')
+                print(gen_input, end='')
 
-        except subprocess.CalledProcessError as p_errors:
-            print(f'Process exited with code {p_errors.returncode}')
-            print(f'Following errors were found:\n\n{p_errors.stderr}')
+            if args.v:
+                print(f'Running {path} solution...')
 
-            with open('input', 'w') as f:
-                print(gen_input, file=f)
+            try:
+                p = subprocess.run([path], capture_output = True, timeout = timeout,
+                                    text = True, input = gen_input, check = True)
 
-            break
+            except subprocess.CalledProcessError as p_errors:
+                print(f'Process exited with code {p_errors.returncode}')
+                print(f'Following errors were found:\n\n{p_errors.stderr}')
 
-        except subprocess.TimeoutExpired:
-            print(f'Executable exceeded timeout of {timeout} seconds')
-            break
+                with open('input', 'w') as f:
+                    print(gen_input, file=f)
 
-        if args.v:
-            print('Input:')
-            print(gen_input, end='')
+                exit(0)
 
-            print('Output:')
-            print(p.stdout)
+            except subprocess.TimeoutExpired:
+                print(f'Executable exceeded timeout of {timeout} seconds')
+                exit(0)
 
-        evaluate(gen_input, p.stdout)
+            if args.v:
+                print('Ok, solution finished')
 
-        print('Ok')
-        
+            if args.show_output:
+                print('Output:')
+                print(p.stdout)
+
+            return p.stdout
+
+        model_ans = run_solution(model)
+        brute_ans = run_solution(brute)
+
+        evaluate(model_ans, brute_ans)
+
+        print('#' * 100)        
         tc += 1
 
-main(args.exec, args.t)
+main(args.model, args.brute, args.t)
