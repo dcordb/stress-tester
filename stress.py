@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from random import randint, shuffle
 import subprocess
 import argparse
@@ -10,6 +11,8 @@ parser.add_argument('brute', help = 'Path to brute solution', type = str)
 parser.add_argument('-t', help = 'Timeout to execute in seconds', default = 1, type = int)
 parser.add_argument('-i', help = 'Show input', action = 'store_true', dest = 'show_input')
 parser.add_argument('-o', help = 'Show output', action = 'store_true', dest = 'show_output')
+parser.add_argument('-debug', help = 'Debug mode', action = 'store_true')
+parser.add_argument('-s', help = 'Sleep mode', action = 'store_true')
 args = parser.parse_args()
 
 def gen():
@@ -20,10 +23,11 @@ def gen():
             yield f'{bin(x)[2:].zfill(i)}\n'
 
 def evaluate(model, brute, input=''):
-    x = int(model)
-    y = int(brute)
+    if model != brute:
+        with open('input', 'w') as f:
+            print(input, file=f)
 
-    assert(x == y)
+        raise RuntimeError('Model and brute output differ')
 
 def main(model, brute, timeout):
     tc = 1
@@ -72,9 +76,15 @@ def main(model, brute, timeout):
         model_ans = run_solution(model)
         brute_ans = run_solution(brute)
 
-        evaluate(model_ans, brute_ans)
+        evaluate(model_ans, brute_ans, gen_input)
 
         print('#' * 100)        
         tc += 1
+
+        if args.debug:
+            break
+
+        if args.s:
+            sleep(1)
 
 main(args.model, args.brute, args.t)
