@@ -7,12 +7,12 @@ from time import sleep
 parser = argparse.ArgumentParser(description = 'Stress Tester')
 parser.add_argument('-v', action = 'store_true', help = 'Verbose Mode')
 parser.add_argument('model', help = 'Path to model solution', type = str)
-parser.add_argument('brute', help = 'Path to brute solution', type = str)
 parser.add_argument('-t', help = 'Timeout to execute in seconds', default = 1, type = int)
 parser.add_argument('-i', help = 'Show input', action = 'store_true', dest = 'show_input')
 parser.add_argument('-o', help = 'Show output', action = 'store_true', dest = 'show_output')
 parser.add_argument('-debug', help = 'Debug mode', action = 'store_true')
 parser.add_argument('-s', help = 'Sleep mode', action = 'store_true')
+parser.add_argument('-b', help = 'Test against brute [brute-path]', type = str, dest = 'run_brute')
 args = parser.parse_args()
 
 def gen():
@@ -29,7 +29,7 @@ def evaluate(model, brute, input=''):
 
         raise RuntimeError('Model and brute output differ')
 
-def main(model, brute, timeout):
+def main(model, timeout):
     tc = 1
 
     gen_obj = gen()
@@ -74,11 +74,12 @@ def main(model, brute, timeout):
             return p.stdout
 
         model_ans = run_solution(model)
-        brute_ans = run_solution(brute)
 
-        evaluate(model_ans, brute_ans, gen_input)
+        if args.run_brute:
+            brute_ans = run_solution(args.run_brute)
+            evaluate(model_ans, brute_ans, gen_input)
 
-        print('#' * 100)        
+        print('#' * 100)
         tc += 1
 
         if args.debug:
@@ -87,4 +88,4 @@ def main(model, brute, timeout):
         if args.s:
             sleep(1)
 
-main(args.model, args.brute, args.t)
+main(args.model, args.t)
